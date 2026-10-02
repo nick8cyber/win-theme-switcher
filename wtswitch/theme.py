@@ -60,10 +60,34 @@ def current_theme(apps: bool = True, system: bool = True) -> str:
     return LIGHT
 
 
-def set_theme(mode: str, apps: bool = True, system: bool = True) -> None:
-    light = mode == LIGHT
-    if apps:
-        _write("AppsUseLightTheme", light)
-    if system:
-        _write("SystemUsesLightTheme", light)
+def nudge_shell() -> None:
+    """Заставляет панель задач перерисоваться после смены темы.
+
+    Windows 11 иногда не перекрашивает панель по WM_SETTINGCHANGE —
+    короткое переключение прозрачности решает это (приём из Auto Dark Mode).
+    """
+    import time
+    value = _read_bool("EnableTransparency", True)
+    _write("EnableTransparency", not value)
+    time.sleep(0.05)
+    _write("EnableTransparency", value)
     broadcast_change()
+
+
+def apply_theme(mode: str, apps: bool = True, system: bool = True) -> bool:
+    """Привести управляемые ключи темы к *mode*, вернуть True если что-то менялось."""
+    changed = False
+    if apps and _read_bool("AppsUseLightTheme") != (mode == LIGHT):
+        _write("AppsUseLightTheme", mode == LIGHT)
+        changed = True
+    if system and _read_bool("SystemUsesLightTheme") != (mode == LIGHT):
+        _write("SystemUsesLightTheme", mode == LIGHT)
+        changed = True
+    if changed:
+        broadcast_change()
+        nudge_shell()
+    return changed
+
+
+def set_theme(mode: str, apps: bool = True, system: bool = True) -> None:
+    apply_theme(mode, apps, system)
