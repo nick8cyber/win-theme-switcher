@@ -8,12 +8,16 @@ import sys
 
 
 def _setup_logging() -> None:
+    from logging.handlers import RotatingFileHandler
+
     from wtswitch.config import config_dir
+    handler = RotatingFileHandler(
+        os.path.join(config_dir(), "log.txt"),
+        maxBytes=256 * 1024, backupCount=1, encoding="utf-8")
     logging.basicConfig(
-        filename=os.path.join(config_dir(), "log.txt"),
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
-        encoding="utf-8")
+        handlers=[handler])
 
 
 def main() -> int:
