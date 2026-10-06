@@ -98,11 +98,17 @@ class App:
     # ---------- фоновый цикл расписания ----------
 
     def _poll_loop(self) -> None:
+        import time
+        last_beat = time.monotonic()
         while not self._poll_stop.is_set():
             try:
                 self._tick()
             except Exception:
                 logging.exception("ошибка в цикле расписания")
+            # heartbeat: если процесс завис, по пропавшим записям это видно в логе
+            if time.monotonic() - last_beat >= 1800:
+                logging.info("тик: жив, override=%s", self.override)
+                last_beat = time.monotonic()
             self._poll_stop.wait(POLL_SECONDS)
 
     def _tick(self) -> None:
